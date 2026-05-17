@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-CloudshareApplication<cloudshare>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.example.cloudshare.CloudshareApplication",
+            "projectName": "cloudshare",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
