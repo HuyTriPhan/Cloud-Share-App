@@ -25,7 +25,7 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
-    @PostMapping("/create-order") 
+    @PostMapping("/create-order")
     public ResponseEntity<?> createOrder(@RequestBody PaymentDTO paymentDTO) {
         PaymentDTO response = paymentService.createOrder(paymentDTO);
         if (response.getSuccess()) {
@@ -45,7 +45,7 @@ public class PaymentController {
 
     @GetMapping("/vnpay-return")
     public ResponseEntity<Void> vnpayReturn(@RequestParam Map<String, String> params,
-                                             HttpServletResponse httpResponse) throws IOException {
+            HttpServletResponse httpResponse) throws IOException {
         PaymentVerificationDTO dto = new PaymentVerificationDTO();
         dto.setVnp_TxnRef(params.get("vnp_TxnRef"));
         dto.setVnp_Amount(params.get("vnp_Amount"));
@@ -53,17 +53,22 @@ public class PaymentController {
         dto.setVnp_TransactionNo(params.get("vnp_TransactionNo"));
         dto.setVnp_SecureHash(params.get("vnp_SecureHash"));
         dto.setVnp_OrderInfo(params.get("vnp_OrderInfo"));
+        dto.setVnp_BankCode(params.get("vnp_BankCode"));
+        dto.setVnp_BankTranNo(params.get("vnp_BankTranNo"));
+        dto.setVnp_CardType(params.get("vnp_CardType"));
+        dto.setVnp_PayDate(params.get("vnp_PayDate"));
+        dto.setVnp_TransactionStatus(params.get("vnp_TransactionStatus"));
 
         String orderInfo = params.getOrDefault("vnp_OrderInfo", "");
         String planId = orderInfo.contains("premium") ? "premium"
-                      : orderInfo.contains("ultimate") ? "ultimate" : "";
+                : orderInfo.contains("ultimate") ? "ultimate" : "";
         dto.setPlanId(planId);
 
         PaymentDTO result = paymentService.verifyPayment(dto);
 
         String redirectUrl = result.getSuccess()
-            ? "http://localhost:5173/subscription?payment=success&credits=" + result.getCredits()
-            : "http://localhost:5173/subscription?payment=failed";
+                ? "http://localhost:5173/subscription?payment=success&credits=" + result.getCredits()
+                : "http://localhost:5173/subscription?payment=failed";
 
         httpResponse.sendRedirect(redirectUrl);
         return ResponseEntity.status(302).build();

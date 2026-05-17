@@ -39,7 +39,8 @@ public class PaymentService {
     @Value("${vnpay.return-url}")
     private String vnpReturnUrl;
 
-    // Giữ nguyên signature method nhưng đổi sang HEX (VNPay dùng hex, không phải base64)
+    // Giữ nguyên signature method nhưng đổi sang HEX (VNPay dùng hex, không phải
+    // base64)
     public PaymentDTO createOrder(PaymentDTO paymentDTO) {
         try {
             Profile currentProfile = profileService.getCurrentProfile();
@@ -87,6 +88,7 @@ public class PaymentService {
                         .message("Payment signature verification failed")
                         .build();
             }
+
             if (!"00".equals(request.getVnp_ResponseCode())) {
                 updateTransactionStatus(request.getVnp_TxnRef(), "FAILED",
                         request.getVnp_TransactionNo(), null);
@@ -96,9 +98,13 @@ public class PaymentService {
                         .build();
             }
 
+            PaymentTransaction transaction = paymentTransactionRepository.findAll().stream()
+                    .filter(t -> t.getOrderId() != null && t.getOrderId().equals(request.getVnp_TxnRef()))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Transaction not found: " + request.getVnp_TxnRef()));
+
+            String clerkId = transaction.getClerkId();
             String planId = request.getPlanId();
-            Profile currentProfile = profileService.getCurrentProfile();
-            String clerkId = currentProfile.getClerkId();
 
             int creditsToAdd = 0;
             String plan = "BASIC";
@@ -122,22 +128,14 @@ public class PaymentService {
                         .message("Payment verified and credits added successfully")
                         .credits(userCreditsService.getUserCredits(clerkId).getCredits())
                         .build();
-            } else {
-                updateTransactionStatus(request.getVnp_TxnRef(), "FAILED",
-                        request.getVnp_TransactionNo(), null);
-                return PaymentDTO.builder()
-                        .success(false)
-                        .message("Invalid plan selected")
-                        .build();
             }
 
+            return PaymentDTO.builder()
+                    .success(false)
+                    .message("Invalid plan selected")
+                    .build();
+
         } catch (Exception e) {
-            try {
-                updateTransactionStatus(request.getVnp_TxnRef(), "ERROR",
-                        request.getVnp_TransactionNo(), null);
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
-            }
             return PaymentDTO.builder()
                     .success(false)
                     .message("Error verifying payment: " + e.getMessage())
@@ -191,36 +189,46 @@ public class PaymentService {
         String hashDataStr = hashData.substring(0, hashData.length() - 1);
         String queryStr = query.substring(0, query.length() - 1);
 
-        String secureHash = generateHmacSha256Hex(hashDataStr, vnpHashSecret);
+        String secureHash = generateHmacSHA512Hex(hashDataStr, vnpHashSecret);
         return vnpPayUrl + "?" + queryStr + "&vnp_SecureHash=" + secureHash;
     }
 
     private boolean isValidSignature(PaymentVerificationDTO request) throws Exception {
-
         Map<String, String> params = new TreeMap<>();
-        params.put("vnp_Amount", request.getVnp_Amount());
-        params.put("vnp_ResponseCode", request.getVnp_ResponseCode());
-        params.put("vnp_TransactionNo", request.getVnp_TransactionNo());
-        params.put("vnp_TxnRef", request.getVnp_TxnRef());
-        params.put("vnp_OrderInfo", request.getVnp_OrderInfo());
+
+        addIfNotEmpty(params, "vnp_Amount", request.getVnp_Amount());
+        addIfNotEmpty(params, "vnp_BankCode", request.getVnp_BankCode());
+        addIfNotEmpty(params, "vnp_BankTranNo", request.getVnp_BankTranNo());
+        addIfNotEmpty(params, "vnp_CardType", request.getVnp_CardType());
+        addIfNotEmpty(params, "vnp_OrderInfo", request.getVnp_OrderInfo());
+        addIfNotEmpty(params, "vnp_PayDate", request.getVnp_PayDate());
+        addIfNotEmpty(params, "vnp_ResponseCode", request.getVnp_ResponseCode());
+        addIfNotEmpty(params, "vnp_TmnCode", vnpTmnCode);
+        addIfNotEmpty(params, "vnp_TransactionNo", request.getVnp_TransactionNo());
+        addIfNotEmpty(params, "vnp_TransactionStatus", request.getVnp_TransactionStatus());
+        addIfNotEmpty(params, "vnp_TxnRef", request.getVnp_TxnRef());
 
         StringBuilder hashData = new StringBuilder();
         for (Map.Entry<String, String> entry : params.entrySet()) {
-            if (entry.getValue() != null && !entry.getValue().isEmpty()) {
-                hashData.append(URLEncoder.encode(entry.getKey(), StandardCharsets.US_ASCII))
-                        .append("=")
-                        .append(URLEncoder.encode(entry.getValue(), StandardCharsets.US_ASCII))
-                        .append("&");
-            }
+            hashData.append(URLEncoder.encode(entry.getKey(), StandardCharsets.US_ASCII))
+                    .append("=")
+                    .append(URLEncoder.encode(entry.getValue(), StandardCharsets.US_ASCII))
+                    .append("&");
         }
         String hashDataStr = hashData.substring(0, hashData.length() - 1);
-        String generatedHash = generateHmacSha256Hex(hashDataStr, vnpHashSecret);
+        String generatedHash = generateHmacSHA512Hex(hashDataStr, vnpHashSecret);
         return generatedHash.equals(request.getVnp_SecureHash());
     }
 
-    private String generateHmacSha256Hex(String data, String key) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA256");
-        SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+    private void addIfNotEmpty(Map<String, String> map, String key, String value) {
+        if (value != null && !value.isEmpty()) {
+            map.put(key, value);
+        }
+    }
+
+    private String generateHmacSHA512Hex(String data, String key) throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA512");
+        SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
         mac.init(secretKeySpec);
         byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
         StringBuilder hexString = new StringBuilder();

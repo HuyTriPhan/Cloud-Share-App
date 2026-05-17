@@ -19,11 +19,12 @@ const Subscription = () => {
       id: "premium",
       name: "Premium",
       credits: 500,
-      price: 500,
+      price: 500000,
       features: [
         "Upload up to 500 files",
         "Access to all basic features",
-        "Priority support"
+        "Priority support",
+        "Basic analytics"
       ],
       recommended: false
     },
@@ -31,7 +32,7 @@ const Subscription = () => {
       id: "ultimate",
       name: "Ultimate",
       credits: 5000,
-      price: 2500,
+      price: 2500000,
       features: [
         "Upload up to 5000 files",
         "Access to all premium features",
@@ -42,7 +43,6 @@ const Subscription = () => {
     }
   ];
 
-  // Xử lý kết quả redirect từ VNPay (thay thế Razorpay handler)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const payment = params.get('payment');
@@ -54,7 +54,6 @@ const Subscription = () => {
       if (returnedCredits) {
         setCredits(parseInt(returnedCredits));
       }
-      // Xóa query params khỏi URL
       window.history.replaceState({}, '', window.location.pathname);
     } else if (payment === 'failed') {
       setMessage('Payment failed or was cancelled. Please try again.');
@@ -89,9 +88,12 @@ const Subscription = () => {
 
     try {
       const token = await getToken();
+      console.log('Token:', token);
+      console.log('Endpoint:', apiEndpoints.CREATE_ORDER);
+
       const response = await axios.post(apiEndpoints.CREATE_ORDER, {
         planId: plan.id,
-        amount: plan.price,  
+        amount: plan.price,
         currency: "VND",
         credits: plan.credits
       }, {
@@ -159,8 +161,7 @@ const Subscription = () => {
               )}
               <h3 className="text-xl font-bold">{plan.name}</h3>
               <div className="mt-2 mb-4">
-                {/* Đổi ₹ → ₫ cho VNPay */}
-                <span className="text-3xl font-bold">₫{plan.price.toLocaleString('vi-VN')}</span>
+                <span className="text-3xl font-bold">{plan.price.toLocaleString('vi-VN')}₫</span>
                 <span className="text-gray-500"> for {plan.credits} credits</span>
               </div>
               <ul className="space-y-3 mb-6">

@@ -2,11 +2,8 @@
   "name": "cloudsharewebapp",
   "private": true,
   "version": "0.0.0",
-
-  "homepage": "https://triphan.github.io/Cloud-Share-App/",
-
+  "homepage": "https://huytriphan.github.io/Cloud-Share-App/",
   "type": "module",
-
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -14,7 +11,6 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
-
   "dependencies": {
     "@clerk/clerk-react": "^5.61.4",
     "@tailwindcss/vite": "^4.2.2",
@@ -27,7 +23,6 @@
     "react-router-dom": "^7.14.0",
     "tailwindcss": "^4.2.2"
   },
-
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@types/react": "^19.2.14",

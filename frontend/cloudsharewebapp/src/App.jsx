@@ -9,6 +9,7 @@ import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { Toaster } from "react-hot-toast"
 import { UserCreditsProvider } from "./context/UserCreditsContext";
 import PublicFileView from "./pages/PublicFileView";
+import PaymentReturn from "./pages/PaymentReturn";
 
 const App = () => {
   return (
@@ -35,7 +36,7 @@ const App = () => {
               <SignedOut><RedirectToSignIn /></SignedOut>
             </>
           } />
-          <Route path="/subscriptions" element={
+          <Route path="/subscription" element={
             <>
               <SignedIn><Subscription /></SignedIn>
               <SignedOut><RedirectToSignIn /></SignedOut>
@@ -53,6 +54,7 @@ const App = () => {
             </>
           } />
           <Route path="/*" element={<RedirectToSignIn />} />
+          <Route path="/payment/return" element={<PaymentReturn />} />
         </Routes>
       </BrowserRouter>
     </UserCreditsProvider>
